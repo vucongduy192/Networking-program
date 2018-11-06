@@ -4,11 +4,11 @@ LIBS =  -lm -pthread
 
 all:	ser cli
 
-cli:	client.c
-	${CC} $(LIBS) -o client client.c
+cli:	tcp_client.c
+	${CC} $(LIBS) -o client tcp_client.c
 
-ser:	server.c
-	${CC} $(LIBS) -o server server.c
+ser:	tcp_server.c
+	${CC} $(LIBS) -o server tcp_server.c
 
 clean:
 	rm -f *.o *~
