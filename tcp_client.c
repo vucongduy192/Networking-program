@@ -4,19 +4,14 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <signal.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include "config.h"
 
-
-#define SERVER_ADDR "127.0.0.1"
-#define SERVER_PORT 5550
-#define BUFF_SIZE 1024
-
-#define LENGTH_NAME 31
-#define LENGTH_MSG 101
-#define LENGTH_SEND 201
 int client_sock = 0;
+int flag = 0;
 void str_trim_lf (char* arr, int length) {
     int i;
     for (i = 0; i < length; i++) { // trim \n
@@ -27,7 +22,7 @@ void str_trim_lf (char* arr, int length) {
     }
 }
 
-void str_overwrite_stdout() {
+void wait_msg() {
     printf("\r%s", "> ");
     fflush(stdout);
 }
@@ -38,7 +33,8 @@ void recv_msg_handler() {
         int receive = recv(client_sock, receiveMessage, LENGTH_SEND, 0);
         if (receive > 0) {
             printf("\r%s\n", receiveMessage);
-            str_overwrite_stdout();
+            memset(receiveMessage, 0, strlen(receiveMessage)+1);
+            wait_msg();
         } else if (receive == 0) {
             break;
         } else { 
@@ -50,11 +46,11 @@ void recv_msg_handler() {
 void send_msg_handler() {
     char message[LENGTH_MSG] = {};
     while (1) {
-        str_overwrite_stdout();
+        wait_msg();
         while (fgets(message, LENGTH_MSG, stdin) != NULL) {
             str_trim_lf(message, LENGTH_MSG);
             if (strlen(message) == 0) {
-                str_overwrite_stdout();
+                wait_msg();
             } else {
                 break;
             }
@@ -67,7 +63,6 @@ void send_msg_handler() {
 }
 
 int main(){
-	char buff[BUFF_SIZE + 1];
 	struct sockaddr_in server_addr; /* server's address information */
 	int msg_len, bytes_sent, bytes_received;
 	
@@ -86,6 +81,11 @@ int main(){
 	}
 		
 	//Step 4: Communicate with server			
+    char name[LENGTH_NAME];
+    printf("Enter your name : ");
+    fgets(name, LENGTH_NAME, stdin);
+    
+    send(client_sock, name, LENGTH_NAME, 0);
 
 	pthread_t send_msg_thread;
     if (pthread_create(&send_msg_thread, NULL, (void *) send_msg_handler, NULL) != 0) {
@@ -99,8 +99,7 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    while (1) {
-    }
+    while (1) {}
 	
 	//Step 4: Close socket
 	close(client_sock);
