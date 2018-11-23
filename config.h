@@ -8,7 +8,7 @@
 #define BUFF_SIZE 1024
 
 #define ROOM_SIZE 3 
-#define ROOM_NUM 5 
+#define ROOM_NUM  5 
 
 typedef struct Client {
     int connfd;

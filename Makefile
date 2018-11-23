@@ -1,14 +1,17 @@
-CFLAGS = -c -Wall
-CC = gcc
-LIBS =  -lm -pthread
+CC = gcc-5
+LIBS = `sdl2-config --libs --cflags` -ggdb3 -O0 --std=c99 -Wall -lSDL2_image -lm
+THREAD =  -lm -pthread
 
-all:	ser cli
+all:	client	server	sdl
 
-cli:	tcp_client.c
-	${CC} $(LIBS) -o client tcp_client.c
+client:	client.c
+	${CC} $(THREAD) -o client client.c	$(LIBS) 
+	
+server:	server.c
+	${CC} $(THREAD) -o server server.c
 
-ser:	tcp_server.c
-	${CC} $(LIBS) -o server tcp_server.c
+sdl:	sdl.c
+	${CC} $(THREAD) -o sdl sdl.c	$(LIBS) 
 
 clean:
 	rm -f *.o *~
