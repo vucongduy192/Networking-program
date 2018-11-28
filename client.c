@@ -181,7 +181,7 @@ void send_room(GtkWidget *widget, gpointer *data) {
 	
 	char join_room_cmd[LENGTH_MSG];
 	sprintf(join_room_cmd, "./join_room %d", *((int *)data));
-	send(client_sock, join_room_cmd, strlen(join_room_cmd),0);
+	//send(client_sock, join_room_cmd, strlen(join_room_cmd),0);
 	puts(join_room_cmd);
 }
 void wait_room_friend(char *data) {
@@ -236,44 +236,13 @@ gboolean timer_exe(gpointer p)
 {
     char msg[1024];
 	struct QNode * req = deQueue(requests);
-    
-	// if (req) {
-	// 	strcpy(msg, req->key);
-	// 	send(client_sock, msg, strlen(msg), 0);
-	// }
+    if (req) {
+		strcpy(msg, req->key);
+		send(client_sock, msg, strlen(msg), 0);
+	}
     return TRUE;
 }
 int main(int argc, char *argv[]){
-	// struct sockaddr_in server_addr; /* server's address information */
-	// int msg_len, bytes_sent, bytes_received;
-	// 	//to be thread-aware
-    // if (!g_thread_supported ()){ g_thread_init(NULL); }
-	// // initialize GDK thread support
-	// gdk_threads_init();
-
-	// // acquire the GDK lock
-	// gdk_threads_enter();
-    // gtk_init(&argc, &argv);
-	// //Step 1: Construct socket
-	// client_sock = socket(AF_INET,SOCK_STREAM,0);
-	
-	// //Step 2: Specify server address
-	// server_addr.sin_family = AF_INET;
-	// server_addr.sin_port = htons(SERVER_PORT);
-	// server_addr.sin_addr.s_addr = inet_addr(SERVER_ADDR);
-	
-	// //Step 3: Request to connect server
-	// if(connect(client_sock, (struct sockaddr*)&server_addr, sizeof(struct sockaddr)) < 0){
-	// 	printf("\nError!Can not connect to sever! Client exit imediately! ");
-	// 	return 0;
-	// }
-	
-    // //Step 4: Communicate with server			
-   	// signal(SIGIO, recv_msg_handler); 
-	// screen_init(); 
-	// enter_name();
-	// gtk_main();
-    // gdk_threads_leave();
 	requests = createQueue(); 
 
 	if (!g_thread_supported ()){ g_thread_init(NULL); }
@@ -308,6 +277,6 @@ int main(int argc, char *argv[]){
 	enter_name();
 	gtk_main();
     gdk_threads_leave();
-	
+	close(client_sock);
 	return 0;
 }
