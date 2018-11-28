@@ -1,17 +1,16 @@
-CC = gcc-5
-LIBS = `sdl2-config --libs --cflags` -ggdb3 -O0 --std=c99 -Wall -lSDL2_image -lm
-THREAD =  -lm -pthread
+CC = gcc
+LIBS = -lgthread-2.0 `pkg-config gtk+-2.0 --cflags --libs`
 
-all:	client	server	sdl
+all:	client	server	tcp-client
 
 client:	client.c
-	${CC} $(THREAD) -o client client.c	$(LIBS) 
-	
-server:	server.c
-	${CC} $(THREAD) -o server server.c
 
-sdl:	sdl.c
-	${CC} $(THREAD) -o sdl sdl.c	$(LIBS) 
+	${CC} -lm -pthread client.c $(LIBS) -o client  
+server:	server.c
+	${CC} -lm -pthread server.c  -o server  
+
+tcp-client: tcp-client.c
+	gcc -w -g -o tcp-client -lgthread-2.0 `pkg-config gtk+-3.0 --cflags --libs` tcp-client.c
 
 clean:
-	rm -f *.o *~
+	rm -f *.o *~ client server
