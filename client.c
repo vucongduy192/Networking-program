@@ -1,15 +1,17 @@
-#include <stdio.h>          /* These are the usual header files */
+#include <stdlib.h>
+#include <stdio.h>
+#include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string.h>
-#include <signal.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <stdlib.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <signal.h>
+#include <sys/select.h>
+#include <sys/time.h>
+#include <netdb.h>
 
 #include "config.h"
 #include "GUI.h"
@@ -18,10 +20,10 @@
 GtkWidget *window, *box;
 GtkWidget *label_name, *entry_name;
 GtkWidget *label_room, *button_room[ROOM_NUM];
-GtkWidget *label_wait, *msg_box, *scroll_window, *entry_msg;
+GtkWidget *label_wait, *msg_box = NULL, *scroll_window, *entry_msg;
 int in_room = 0;
 int client_sock = 0;
-struct Queue *requests;
+struct Queue *responses;
 
 void screen_init();
 void game_quit(GtkWidget *widget, gpointer *data);
@@ -58,29 +60,17 @@ char * get_data(char command[]) {
 }
 void recv_msg_handler() {
 	char *receive_message = malloc(LENGTH_MSG);
-    while (1) {
-		memset(receive_message, 0, strlen(receive_message)+1);
-        int receive = recv(client_sock, receive_message, LENGTH_MSG, 0);
-		
-		if (receive > 0) {
-			printf("\r%s\n", receive_message);
-			if (strstr(receive_message, "new_client_success")) {
-				choose_zoom(get_data(receive_message));
-			}
-			if (strstr(receive_message, "join_room_success")) {
-				wait_room_friend(get_data(receive_message));
-			}
-			if (strstr(receive_message, "join_room_error")) {
-				
-			}
-			if (msg_box)
-				append_message(receive_message);
-        } else if (receive == 0) {
-            break;
-        } else { 
-            // -1 
-        }
-    }
+	memset(receive_message, 0, strlen(receive_message)+1);
+	int receive = recv(client_sock, receive_message, LENGTH_MSG, 0);
+	
+	if (receive > 0) {
+		receive_message[receive] = '\0';
+		enQueue(responses, receive_message);
+	} else if (receive == 0) {
+		// break;
+	} else { 
+		// -1 
+	}
 }
 
 void send_msg_handler() {
@@ -108,7 +98,7 @@ void game_quit(GtkWidget *widget, gpointer *data)
 }
 
 void enter_name () {
-	box = gtk_vbox_new(0, 0);
+	box = gtk_box_new(0, 0);
 	label_name = gtk_label_new(NULL);
 	gtk_label_set_markup(GTK_LABEL(label_name), "<b>Enter your username</b>");
 	gtk_container_add(GTK_CONTAINER(box), label_name);
@@ -126,10 +116,9 @@ void send_name(GtkWidget *widget, gpointer *data) {
 	const gchar *send_buffer = gtk_entry_get_text(GTK_ENTRY(widget));
 	char new_client_cmd[LENGTH_MSG];
 	sprintf(new_client_cmd, "./new_client %s", send_buffer);
-	//send(client_sock, new_client_cmd, strlen(new_client_cmd),0);
-	enQueue(requests, new_client_cmd);
+	int n = send(client_sock, new_client_cmd, strlen(new_client_cmd),0);
 	puts(new_client_cmd);
-	choose_zoom();
+	// choose_zoom();
 }
 
 Room room_arr[ROOM_NUM];
@@ -154,6 +143,7 @@ void convert_room_detail(char *data) {
 	}
 }
 void choose_zoom(char *data) {
+	puts("Choose room");
 	gtk_widget_hide(label_name);
 	gtk_widget_hide(entry_name);
 	
@@ -181,7 +171,7 @@ void send_room(GtkWidget *widget, gpointer *data) {
 	
 	char join_room_cmd[LENGTH_MSG];
 	sprintf(join_room_cmd, "./join_room %d", *((int *)data));
-	//send(client_sock, join_room_cmd, strlen(join_room_cmd),0);
+	send(client_sock, join_room_cmd, strlen(join_room_cmd),0);
 	puts(join_room_cmd);
 }
 void wait_room_friend(char *data) {
@@ -220,7 +210,8 @@ void append_message(char *msg) {
 	GtkTextBuffer * buffer;
 	GtkTextMark * mark;
 	GtkTextIter iter;
-
+	if (msg_box == NULL)
+		return;
 	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(msg_box));
 
 	mark = gtk_text_buffer_get_insert(buffer);
@@ -235,20 +226,34 @@ void append_message(char *msg) {
 gboolean timer_exe(gpointer p)
 {
     char msg[1024];
-	struct QNode * req = deQueue(requests);
-    if (req) {
-		strcpy(msg, req->key);
-		send(client_sock, msg, strlen(msg), 0);
+	//displayQueue(responses);
+	struct QNode * response = deQueue(responses);
+    if (response != NULL) {
+		puts(response->key);
+		strcpy(msg, response->key);
+		// send(client_sock, msg, strlen(msg), 0);
+		if (strstr(msg, "new_client_success")) {
+			choose_zoom(get_data(msg));
+		}
+		if (strstr(msg, "join_room_success")) {
+			wait_room_friend(get_data(msg));
+		}
+		if (strstr(msg, "join_room_error")) {
+
+		}
+		if (msg_box)
+			append_message(msg);
 	}
     return TRUE;
 }
 int main(int argc, char *argv[]){
-	requests = createQueue(); 
+	responses = createQueue(); 
 
 	if (!g_thread_supported ()){ g_thread_init(NULL); }
 	// initialize GDK thread support
 	gdk_threads_init();
 	gdk_threads_enter();
+	g_timeout_add(100, (GSourceFunc)timer_exe, NULL);
 	gtk_init(&argc, &argv);
 
 	struct sockaddr_in server_socket;
@@ -272,11 +277,11 @@ int main(int argc, char *argv[]){
     // set this process to be the process owner for SIGIO signal
     if (fcntl(client_sock, F_SETOWN, getpid()) < 0)
         printf("Error in setting own to socket");
-	g_timeout_add(100, (GSourceFunc)timer_exe, NULL);
 	screen_init(); 
 	enter_name();
 	gtk_main();
     gdk_threads_leave();
 	close(client_sock);
+
 	return 0;
 }
