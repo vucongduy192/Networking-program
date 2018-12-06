@@ -29,7 +29,6 @@ struct QNode* newNode(char *k)
 // A utility function to create an empty queue 
 struct Queue *createQueue() 
 { 
-    puts("init");
     struct Queue *q = (struct Queue*)malloc(sizeof(struct Queue)); 
     q->front = q->rear = NULL; 
     return q; 
@@ -66,7 +65,6 @@ void displayQueue(struct Queue *q) {
 struct QNode *deQueue(struct Queue *q) 
 { 
     g_mutex_lock(&queueMutex);
-    puts("hellx");
     // If queue is empty, return NULL. 
     if (q->front == NULL) {
         g_mutex_unlock(&queueMutex);

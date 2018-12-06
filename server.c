@@ -7,15 +7,15 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <stdlib.h>
-#include "config.h"
 
-Room room_arr[ROOM_NUM];
+#include "server_config.h"
+Room room_arr[ROOM_MAX];
 
-Client client_arr[CLIENT_NUM];
+Client client_arr[CLIENT_MAX];
 int client_num = 0;
 struct sockaddr_in server, client;
 void room_init() {
-	for (int i = 0; i < ROOM_NUM; i++) {
+	for (int i = 0; i < ROOM_MAX; i++) {
 		room_arr[i].id	= i + 1;
 		room_arr[i].client_num = 0;
 	}
@@ -35,7 +35,6 @@ Client get_client(int connfd) {
 }
 
 void new_client(int connfd, char *buff) {
-	str_trim(buff, strlen(buff)-1);
 	client_arr[client_num].connfd = connfd;
 	strcpy(client_arr[client_num++].name, buff);
 }
@@ -52,11 +51,9 @@ int join_room(int connfd, int room_id) {
 	room_arr[room_id-1].client_num++;
 	return 1;	
 }
-void send_msg_room(int connfd, int room_id, char *buff) {
+void send_msg_room(int connfd, int room_id, char *msg) {
 	for (int i = 0; i < client_num; i++) {
 		if (client_arr[i].connfd != connfd && client_arr[i].room_id == room_id) {
-			char msg[LENGTH_MSG];
-			sprintf(msg,"%s : %s", get_client(connfd).name, buff);
 			send(client_arr[i].connfd, msg, strlen(msg), 0);
 		}
 	}
@@ -68,7 +65,7 @@ char * get_params(char command[]) {
 	}
 	i++;
 
-	char * params = malloc(LENGTH_NAME);
+	char * params = malloc(LENGTH_MSG);
 	for (j = 0; i+j < strlen(command); j++) {
 		*(params + j) = command[i+j];
 	}
@@ -78,6 +75,7 @@ char * get_params(char command[]) {
 void *echo(void *arg){
 	int bytes_sent, bytes_received;
 	char buff[BUFF_SIZE + 1];
+	char msg[LENGTH_MSG];
 	int connfd = *((int *) arg);
 	
 	pthread_detach(pthread_self());
@@ -89,34 +87,47 @@ void *echo(void *arg){
 		memset(buff, 0, strlen(buff));
 		while((bytes_received = recv(connfd, buff, BUFF_SIZE, 0)) > 0)
 		{
-			buff[strlen(buff)] = '\0';
+			buff[bytes_received] = '\0';
 			if (strstr(buff, "./new_client")) {
 				new_client(connfd, get_params(buff));
 				printf("You got a connection from %s - Port : %d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port)); /* prints client's IP */
 				printf("Client name : %s \n", buff);
-				char room_info[LENGTH_MSG];
-				sprintf(room_info, "new_client_success: ");
-				for (int i = 0; i < ROOM_NUM; i++) {
-					sprintf(room_info + strlen(room_info), "%d-%d#", room_arr[i].id, room_arr[i].client_num);	
+				memset(msg, 0, strlen(msg));
+				sprintf(msg, "new_client_success: ");
+				for (int i = 0; i < ROOM_MAX; i++) {
+					sprintf(msg + strlen(msg), "%d-%d#", room_arr[i].id, room_arr[i].client_num);	
 				}
-				send(connfd, room_info, strlen(room_info), 0);	
+				send(connfd, msg, strlen(msg), 0);	
 				break;
 			}
+
 			if (strstr(buff, "./join_room")) {
 				room_id =  atoi(get_params(buff));
 				if (join_room(connfd, room_id) == 1) {
-					sprintf(buff, "join_room_success: ");
+					sprintf(msg, "join_room_success: ");
+					char temp[LENGTH_MSG];
+					sprintf(temp, "refresh_friend_room: ");
 					for (int i = 0; i < client_num; i++) {
-						if (client_arr[i].room_id == room_id)
-							sprintf(buff+strlen(buff), "%s#", client_arr[i].name);	
+						if (client_arr[i].room_id == room_id) {
+							sprintf(msg+strlen(msg), "%s#", client_arr[i].name);
+							sprintf(temp+strlen(temp), "%s#", client_arr[i].name);
+						}	
 					}
+					send_msg_room(connfd, room_id, temp);
 				}
-				else  sprintf(buff, "join_room_error: Room %d is full", room_id);
-				send(connfd, buff, strlen(buff), 0);	
+				else  sprintf(msg, "join_room_error: Room %d is full", room_id);
+				send(connfd, msg, strlen(msg), 0);	
 				break;
 			}
-			puts(buff);
-			send_msg_room(connfd, room_id, buff);
+
+			if (strstr(buff, "./new_message")) {
+				char msg[LENGTH_MSG];
+				sprintf(msg,"new_message_success: %s: ", get_client(connfd).name);
+				sprintf(msg+strlen(msg), "%s", get_params(buff));
+				puts(msg);
+				send_msg_room(connfd, room_id, msg);
+			}
+			//puts(buff);
 		}
 	}
 	
@@ -133,7 +144,7 @@ int main()
 	}
 	bzero(&server, sizeof(server));
 	server.sin_family = AF_INET;         
-	server.sin_port = htons(SERVER_PORT); 
+	server.sin_port = htons(PORT); 
 	server.sin_addr.s_addr = htonl(INADDR_ANY);  /* INADDR_ANY puts your IP address automatically */   
 	
 	if(bind(listenfd,(struct sockaddr*)&server, sizeof(server))==-1){ 
@@ -141,7 +152,7 @@ int main()
 		return 0;
 	}     
 
-	if(listen(listenfd, CLIENT_NUM) == -1){  
+	if(listen(listenfd, CLIENT_MAX) == -1){  
 		perror("\nError: ");
 		return 0;
 	}
