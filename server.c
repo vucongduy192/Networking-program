@@ -9,8 +9,9 @@
 #include <stdlib.h>
 
 #include "server_config.h"
+#include "question.c"
 Room room_arr[ROOM_MAX];
-
+char boolean[2][10] = {"false", "true"};
 Client client_arr[CLIENT_MAX];
 int client_num = 0;
 struct sockaddr_in server, client;
@@ -40,7 +41,7 @@ void new_client(int connfd, char *buff) {
 }
 
 int join_room(int connfd, int room_id) {
-	if (room_arr[room_id-1].client_num == 3)
+	if (room_arr[room_id-1].client_num == ROOM_SIZE)
 		return 0;
 
 	for(int i = 0; i < client_num; i++)
@@ -72,14 +73,42 @@ char * get_params(char command[]) {
 	*(params + j) = '\0';
 	return params;
 }
+int check_answer(Answer * a) {
+	if (q_arr[a->q_num].answer == a->q_option + 1)
+		return 1;
+	return 0;
+}
+
+Answer * get_answer(char *command) {
+	char *answer = get_params(command);
+	char q_num[3];
+	char q_ans[3];
+	
+	Answer *a = malloc(sizeof(Answer));
+	int i = 0, j = 0;
+	while(answer[j] != ' ') {
+		q_num[i++] = answer[j++];
+	}
+	a->q_num = atoi(q_num);
+
+	i = 0; j++;
+	while(j < strlen(answer)) {
+		q_ans[i++] = answer[j++];
+	}
+	q_ans[j-2] = '\0';
+	a->q_option = atoi(q_ans);
+	printf("%d - %d\n", a->q_num, a->q_option);
+	return a;
+}
+
 void *echo(void *arg){
 	int bytes_sent, bytes_received;
 	char buff[BUFF_SIZE + 1];
 	char msg[LENGTH_MSG];
 	int connfd = *((int *) arg);
-	
+		
 	pthread_detach(pthread_self());
-	
+
 	// Game start
 	
 	int room_id;	
@@ -88,11 +117,11 @@ void *echo(void *arg){
 		while((bytes_received = recv(connfd, buff, BUFF_SIZE, 0)) > 0)
 		{
 			buff[bytes_received] = '\0';
+			memset(msg, 0, strlen(msg));
 			if (strstr(buff, "./new_client")) {
 				new_client(connfd, get_params(buff));
 				printf("You got a connection from %s - Port : %d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port)); /* prints client's IP */
 				printf("Client name : %s \n", buff);
-				memset(msg, 0, strlen(msg));
 				sprintf(msg, "new_client_success: ");
 				for (int i = 0; i < ROOM_MAX; i++) {
 					sprintf(msg + strlen(msg), "%d-%d#", room_arr[i].id, room_arr[i].client_num);	
@@ -103,7 +132,10 @@ void *echo(void *arg){
 
 			if (strstr(buff, "./join_room")) {
 				room_id =  atoi(get_params(buff));
-				if (join_room(connfd, room_id) == 1) {
+				int check = join_room(connfd, room_id);
+				printf("room : %d - check : %d\n", room_id, check);
+				
+				if (check == 1) {
 					sprintf(msg, "join_room_success: ");
 					char temp[LENGTH_MSG];
 					sprintf(temp, "refresh_friend_room: ");
@@ -113,21 +145,35 @@ void *echo(void *arg){
 							sprintf(temp+strlen(temp), "%s#", client_arr[i].name);
 						}	
 					}
+					send(connfd, msg, strlen(msg), 0);
 					send_msg_room(connfd, room_id, temp);
-				}
-				else  sprintf(msg, "join_room_error: Room %d is full", room_id);
-				send(connfd, msg, strlen(msg), 0);	
+				} else {
+					sprintf(msg, "join_room_error: Room %d is full", room_id);
+					send(connfd, msg, strlen(msg), 0);
+				}	
 				break;
 			}
 
 			if (strstr(buff, "./new_message")) {
-				char msg[LENGTH_MSG];
 				sprintf(msg,"new_message_success: %s: ", get_client(connfd).name);
 				sprintf(msg+strlen(msg), "%s", get_params(buff));
 				puts(msg);
 				send_msg_room(connfd, room_id, msg);
 			}
-			//puts(buff);
+
+			if (strstr(buff, "./answer")) {
+				Answer * a = get_answer(buff);
+				int answer_result = check_answer(a);
+				char temp[LENGTH_MSG];
+				sprintf(msg, (answer_result == 1) ? "answer_true" : "answer_false");
+				
+				sprintf(temp, "%s You answer %d. It's %s.", msg,  (a->q_option+1), boolean[answer_result]);
+				send(connfd, temp, strlen(temp), 0);
+				
+				memset(temp, strlen(temp), 0);
+				sprintf(temp, "%s %s answer %d. It's %s.", msg, get_client(connfd).name, (a->q_option+1), boolean[answer_result]);	
+				send_msg_room(connfd, room_id, temp);
+			}
 		}
 	}
 	
@@ -137,6 +183,7 @@ int main()
 { 
 	int listenfd, connfd;
 	pthread_t tid;
+	load_question();
 
 	if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1 ){  /* calls socket() */
 		perror("\nError: ");

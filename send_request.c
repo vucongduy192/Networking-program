@@ -1,8 +1,3 @@
-
-
-
-
-
 void send_name(GtkWidget *widget, gpointer *data) {
 	// Get username
 	const gchar *send_buffer = gtk_entry_get_text(GTK_ENTRY(widget));
@@ -27,10 +22,16 @@ void send_msg() {
 	sprintf(message, "./new_message %s", send_buffer);
     send(client_sock, message, strlen(message), 0);
 	puts(message);
-	gtk_entry_set_text(GTK_ENTRY(entry_msg), "");
-	
+	gtk_entry_set_text(GTK_ENTRY(entry_msg), "");	
 }
 
-
-
-
+void send_answer(GtkWidget *widget, gpointer *data) {
+	if (running == TRUE) {
+		char answer_cmd[LENGTH_MSG];
+		sprintf(answer_cmd, "./answer %d %d", q_cur, *((int *)data));
+		puts(answer_cmd);
+		send(client_sock, answer_cmd, strlen(answer_cmd),0);
+	} else {
+		append_message("You can't answer");
+	}
+}

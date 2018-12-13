@@ -14,11 +14,12 @@
 #include <netdb.h>
 
 #include <gtk/gtk.h>
+#include "question.c"
 #include "queue.c"
-#include "client_config.h"
+#include "client_global_params.h"
+#include "handle_string.c"
 #include "gui.c"
 #include "send_request.c"
-#include "handle_response.c"
 
 void recv_msg() {
 	char *receive_message = malloc(LENGTH_MSG);
@@ -27,6 +28,7 @@ void recv_msg() {
 	
 	if (receive > 0) {
 		receive_message[receive] = '\0';
+		puts(receive_message);
 		enQueue(responses, receive_message);
 	} else if (receive == 0) {
 		// break;
@@ -38,7 +40,6 @@ void recv_msg() {
 gboolean timer_exe(gpointer p)
 {
     char msg[1024], *data;
-	//displayQueue(responses);
 	struct QNode * response = deQueue(responses);
     if (response != NULL) {
 		strcpy(msg, response->key);
@@ -46,12 +47,12 @@ gboolean timer_exe(gpointer p)
 			data = get_data(msg);
 			choose_zoom_screen(data);
 		}
-		if (strstr(msg, "join_room_success")) {
+		if (strstr(msg, "join_room_success")) {	
 			data = get_data(msg);
 			wait_friend_screen(data);
 		}
 		if (strstr(msg, "join_room_error")) {
-
+			puts(msg);
 		}
 		if (strstr(msg, "refresh_friend_room")) {
 			data = get_data(msg);
@@ -60,6 +61,18 @@ gboolean timer_exe(gpointer p)
 		if (strstr(msg, "new_message_success")) {
 			data = get_data(msg);
 			append_message(data);	
+		}
+		if (strstr(msg, "answer_true")) {
+			q_cur++;
+			append_message(get_data(msg));
+			new_question();	
+		}
+		if (strstr(msg, "answer_false")) {
+			if (strstr(msg, "You") != 0)
+				running = FALSE;
+			new_question();
+			data = get_data(msg);
+			append_message(data);
 		}
 	}
     return TRUE;

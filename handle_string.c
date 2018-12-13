@@ -43,8 +43,23 @@ void convert_client_detail(char *data) {
 		while(data[i] != '#') {
 			element[j++] = data[i++]; 
 		}
+		element[j] = '\0'; 
 		i++;
 		strcpy(client_arr[k++].name, element);   
 	}
 	client_num = k;
+}
+
+char * string_multiline(char *str) {
+	char *temp = malloc(LENGTH_MSG*sizeof(char));
+	int  i = 0, j = 0;
+	while(i < strlen(str)) {
+		temp[j++] = str[i++];
+		if (i%50 == 0) {
+			temp[j++] = '\n';
+		}
+	}
+	temp[j] = '\0';
+	return g_locale_to_utf8(temp, -1, 0, 0, 0);
+	//return temp;
 }
