@@ -1,12 +1,14 @@
 #define LENGTH_QUESTION 256
 #define LENGTH_OPTION 128
+#define END_FILE 0
 #define FILE_NAME "data.txt"
+
 typedef struct q {
     char question[LENGTH_QUESTION];
     char option[4][LENGTH_OPTION];
     int answer;
 } Question;
-int END_FILE = 0;
+
 Question q_arr[30];
 int q_num;
 

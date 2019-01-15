@@ -1,18 +1,17 @@
 void send_name(GtkWidget *widget, gpointer *data) {
 	// Get username
 	const gchar *send_buffer = gtk_entry_get_text(GTK_ENTRY(widget));
+	strcpy(client_name, send_buffer);
 	char new_client_cmd[LENGTH_MSG];
 	sprintf(new_client_cmd, "./new_client %s", send_buffer);
 	int n = send(client_sock, new_client_cmd, strlen(new_client_cmd),0);
-	//puts(new_client_cmd);
 }
 
 void send_room(GtkWidget *widget, gpointer *data) {
-	//printf("\r%d", *((int *)data));
 	char join_room_cmd[LENGTH_MSG];
-	sprintf(join_room_cmd, "./join_room %d", *((int *)data));
+	room_id = *((int *)data);
+	sprintf(join_room_cmd, "./join_room %d", room_id);
 	send(client_sock, join_room_cmd, strlen(join_room_cmd),0);
-	puts(join_room_cmd);
 }
 
 void send_msg() {
@@ -34,4 +33,10 @@ void send_answer(GtkWidget *widget, gpointer *data) {
 	} else {
 		append_message("You can't answer");
 	}
+}
+
+void send_back() {
+	char message[LENGTH_MSG];
+	sprintf(message, "./left_room %d", room_id);
+    send(client_sock, message, strlen(message), 0);
 }

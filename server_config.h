@@ -10,6 +10,9 @@
 #define NEW_CLIENT_SUCESS "new_client_success"
 #define NEW_CLIENT_ERROR "new_client_error"
 
+#define ROOM_PENDING 0
+#define ROOM_RUNNING 1
+
 typedef struct Client {
     int connfd;
     int room_id;
@@ -19,6 +22,7 @@ typedef struct Client {
 typedef struct Room {
     int id;
     int client_num;
+    int status;
 } Room;
 
 typedef struct Answer {

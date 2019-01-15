@@ -18,6 +18,7 @@
 #include "queue.c"
 #include "client_global_params.h"
 #include "handle_string.c"
+#include "dialog.c"
 #include "gui.c"
 #include "send_request.c"
 
@@ -43,7 +44,7 @@ gboolean timer_exe(gpointer p)
 	struct QNode * response = deQueue(responses);
     if (response != NULL) {
 		strcpy(msg, response->key);
-		if (strstr(msg, "new_client_success")) {
+		if (strstr(msg, "new_client_success") || strstr(msg, "choose_room_again")) {
 			data = get_data(msg);
 			choose_zoom_screen(data);
 		}
@@ -52,9 +53,19 @@ gboolean timer_exe(gpointer p)
 			wait_friend_screen(data);
 		}
 		if (strstr(msg, "join_room_error")) {
-			puts(msg);
+			show_error(ROOM_FULL_NOTIFY);
+		}
+		if (strstr(msg, "refresh_choose_room") && in_choose_room == TRUE) {
+			data = get_data(msg);
+			choose_zoom_screen(data);
+		}
+		if (strstr(msg, "friend_left_room")) {
+			data = get_data(msg);
+			show_info(data);
+			append_message(data);
 		}
 		if (strstr(msg, "refresh_friend_room")) {
+			puts(msg);
 			data = get_data(msg);
 			refresh_friend_room(data);
 		}
@@ -63,20 +74,30 @@ gboolean timer_exe(gpointer p)
 			append_message(data);	
 		}
 		if (strstr(msg, "answer_true")) {
+			data = get_data(msg);
+			show_info(data);
+
 			q_cur++;
-			append_message(get_data(msg));
-			new_question();	
+			if (q_cur == q_num)
+				win_game_screen();
+			else new_question();	
 		}
 		if (strstr(msg, "answer_false")) {
 			if (strstr(msg, "You") != 0)
 				running = FALSE;
-			new_question();
 			data = get_data(msg);
-			append_message(data);
+			show_info(data);
+
+			running_client--;
+			if (running_client == 0) 
+				lose_game_screen();
+			else new_question();
 		}
+		
 	}
     return TRUE;
 }
+
 int main(int argc, char *argv[]){
 	responses = createQueue(); 
 
@@ -105,14 +126,14 @@ int main(int argc, char *argv[]){
         printf("Error in setting socket to async, nonblock mode");
 
     signal(SIGIO, recv_msg); // assign SIGIO to the handler
+	
     // set this process to be the process owner for SIGIO signal
     if (fcntl(client_sock, F_SETOWN, getpid()) < 0)
         printf("Error in setting own to socket");
 	game_init(); 
 	enter_name_screen();
 	gtk_main();
-    gdk_threads_leave();
+	gdk_threads_leave();
 	close(client_sock);
-
 	return 0;
 }
