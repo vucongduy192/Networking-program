@@ -92,7 +92,7 @@ void wait_friend_screen(char *data) {
 	choose_zoom_clear();
 	in_waiting_friend = TRUE;
 	refresh_friend_room(data);
-	if (client_num <= ROOM_SIZE - 1) 
+	if (running_client <= ROOM_SIZE - 1) 
 		show_info("Please wait another player!");
 
 	btn_back = gtk_button_new_with_label("Back");
@@ -120,8 +120,10 @@ void wait_friend_screen(char *data) {
 }
 
 void refresh_friend_room(data) {
+	
 	convert_client_detail(data);
-	for(int i = 0; i < client_num; i++) {
+	
+	for(int i = 0; i < running_client; i++) {
 		puts(client_arr[i].name);
 		if (label_client[i] == NULL) {
 			label_client[i] = gtk_label_new(NULL);
@@ -136,7 +138,7 @@ void refresh_friend_room(data) {
 			gtk_widget_show(label_client[i]);
 		} 
 	}
-	if(client_num == ROOM_SIZE) {
+	if(running_client == ROOM_SIZE) {
 		show_info("Phòng chơi đã đầy. Bắt đầu ngay!");
 		play_game(); 
 	}
@@ -160,6 +162,7 @@ void append_message(char *msg) {
 }
 
 void new_question() {
+	puts("new question");
 	if (label_question == NULL) {
 		label_question = gtk_label_new(NULL);
 		gtk_table_attach_defaults(GTK_TABLE(table), label_question, 0, 2, 0, 4);
@@ -185,9 +188,11 @@ void new_question() {
 void in_game_clear() {
 	if (btn_back != NULL) {
 		// Chat area
-		for(int i = 0; i < client_num; i++) {
-			gtk_widget_hide(label_client[i]);
-			label_client[i] = NULL;
+		for(int i = 0; i < ROOM_SIZE; i++) {
+			if (label_client[i] != NULL) {
+				gtk_widget_hide(label_client[i]);
+				label_client[i] = NULL;
+			}
 		}
 		gtk_widget_hide(btn_back);
 		gtk_widget_hide(entry_msg);
@@ -216,8 +221,9 @@ void win_game_screen() {
 	in_game_clear();
 	gtk_widget_show(btn_back);
 	end_game_result = gtk_label_new(NULL);
-	gtk_label_set_markup(GTK_LABEL(end_game_result), "<b>Các bạn đã thua cuộc</b>");
+	gtk_label_set_markup(GTK_LABEL(end_game_result), "<b>Các bạn đã chiến thắng</b>");
 	gtk_table_attach_defaults(GTK_TABLE(table), end_game_result, 1, 3, 1, 2);
+	gtk_widget_show(end_game_result);
 }
 
 void lose_game_screen() {

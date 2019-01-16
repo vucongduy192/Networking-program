@@ -44,6 +44,7 @@ void new_client(int connfd, char *buff) {
 }
 
 int join_room(int connfd, int room_id) {
+
 	if (room_arr[room_id-1].client_num == ROOM_SIZE)
 		return 0;
 	if (room_arr[room_id-1].status == ROOM_RUNNING)
@@ -63,7 +64,8 @@ void left_room(int connfd, int room_id) {
 		if (client_arr[i].connfd == connfd)	{
 			client_arr[i].room_id = -1;
 		}
-	room_arr[room_id-1].client_num--;
+	if (room_arr[room_id-1].client_num > 0)
+		room_arr[room_id-1].client_num--;
 	if (room_arr[room_id-1].client_num == 0)
 		room_arr[room_id-1].status = ROOM_PENDING;
 }
@@ -208,9 +210,11 @@ void *echo(void *arg){
 					sprintf(msg + strlen(msg), "%d-%d#", room_arr[i].id, room_arr[i].client_num);	
 				}
 				send(connfd, msg, strlen(msg), 0);
-
+				
 				char temp[LENGTH_MSG];
-				sprintf(temp, "friend_left_room: %s had left room.", get_client(connfd).name);
+				if (strstr(buff, "left_room_eliminated"))
+					sprintf(temp, "left_room_eliminated: %s had left room.", get_client(connfd).name);
+				else sprintf(temp, "left_room_running: %s had left room.", get_client(connfd).name); 
 				send_msg_room(connfd, room_id, temp);
 		
 				char temp2[LENGTH_MSG];	

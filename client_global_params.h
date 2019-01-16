@@ -31,7 +31,7 @@ typedef struct Answer {
     int q_option;
 } Answer;
 
-int client_sock = 0, client_num = 0, running_client = ROOM_SIZE;
+int client_sock = 0, running_client = 0;
 struct Queue *responses;
 Room room_arr[ROOM_NUM];
 Client client_arr[ROOM_SIZE];

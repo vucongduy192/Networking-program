@@ -37,6 +37,8 @@ void send_answer(GtkWidget *widget, gpointer *data) {
 
 void send_back() {
 	char message[LENGTH_MSG];
-	sprintf(message, "./left_room %d", room_id);
+	if (running == TRUE)
+		sprintf(message, "./left_room_running %d", room_id);
+	else sprintf(message, "./left_room_eliminated %d", room_id);
     send(client_sock, message, strlen(message), 0);
 }

@@ -47,7 +47,7 @@ void convert_client_detail(char *data) {
 		i++;
 		strcpy(client_arr[k++].name, element);   
 	}
-	client_num = k;
+	running_client = k;
 }
 
 char * string_multiline(char *str) {

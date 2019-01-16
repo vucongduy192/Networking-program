@@ -64,9 +64,12 @@ gboolean timer_exe(gpointer p, int test)
 				choose_zoom_screen(data);
 			}
 		}
-		if (strstr(msg, "friend_left_room")) {
+		if (strstr(msg, "left_room")) {
 			data = get_data(msg);
-			running_client--;
+			if (strstr(msg, "left_room_running")) {
+				puts("thoat");
+				running_client--;
+			}
 			show_info(data);
 			append_message(data);
 		}
@@ -82,22 +85,26 @@ gboolean timer_exe(gpointer p, int test)
 		if (strstr(msg, "answer_true")) {
 			data = get_data(msg);
 			show_info(data);
-
+			append_message(data);
+			
 			q_cur++;
 			if (q_cur == q_num)
 				win_game_screen();
 			else new_question();	
 		}
 		if (strstr(msg, "answer_false")) {
-			if (strstr(msg, "You") != 0)
+			if (strstr(msg, "Bạn") != 0)
 				running = FALSE;
 			data = get_data(msg);
 			show_info(data);
+			append_message(data);
 
 			running_client--;
+			printf("tra loi sai %d running_client",  running_client);
 			if (running_client == 0) 
 				lose_game_screen();
 			else new_question();
+			
 		}
 		
 	}
