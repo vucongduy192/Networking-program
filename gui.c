@@ -120,7 +120,12 @@ void wait_friend_screen(char *data) {
 }
 
 void refresh_friend_room(data) {
-	
+	for(int i = 0; i < ROOM_SIZE; i++) {
+		if (label_client[i] != NULL) {
+			gtk_widget_hide(label_client[i]);
+			label_client[i] = NULL;
+		}
+	}
 	convert_client_detail(data);
 	
 	for(int i = 0; i < running_client; i++) {
