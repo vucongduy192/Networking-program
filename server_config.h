@@ -29,3 +29,6 @@ typedef struct Answer {
     int q_num;
     int q_option;
 } Answer;
+
+#define ROOM_FULL_NOTIFY "Phòng chơi đã đầy. Hãy chọn phòng khác"
+#define ROOM_STARTED_NOTIFY "Phòng chơi đã bắt đầu. Hãy chọn phòng khác"

@@ -38,7 +38,7 @@ void recv_msg() {
 	}
 }
 
-gboolean timer_exe(gpointer p)
+gboolean timer_exe(gpointer p, int test)
 {
     char msg[1024], *data;
 	struct QNode * response = deQueue(responses);
@@ -53,14 +53,20 @@ gboolean timer_exe(gpointer p)
 			wait_friend_screen(data);
 		}
 		if (strstr(msg, "join_room_error")) {
-			show_error(ROOM_FULL_NOTIFY);
-		}
-		if (strstr(msg, "refresh_choose_room") && in_choose_room == TRUE) {
 			data = get_data(msg);
-			choose_zoom_screen(data);
+			show_error(data);
+		}
+		if (strstr(msg, "refresh_list_room")) {
+			if (label_room != NULL) {
+				puts("change");
+				data = get_data(msg);
+				choose_zoom_clear();
+				choose_zoom_screen(data);
+			}
 		}
 		if (strstr(msg, "friend_left_room")) {
 			data = get_data(msg);
+			running_client--;
 			show_info(data);
 			append_message(data);
 		}

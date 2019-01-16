@@ -37,18 +37,18 @@ Room room_arr[ROOM_NUM];
 Client client_arr[ROOM_SIZE];
 int running = FALSE;
 int in_choose_room = FALSE;
+int in_waiting_friend = FALSE;
 int q_cur;
 char client_name[LENGTH_MSG];
 int room_id;
 
-#define ROOM_FULL_NOTIFY "Phòng chơi đã đầy. Hãy chọn phòng khác"
 #define LEFT_ROOM_MODAL "Bạn chắc chắn muốn rời phòng chơi"
-
+#define ELIMINATED "Bạn đã bị loại"
 
 // GUI
 GtkWidget *window, *box, *table;        
 GtkWidget *label_name, *entry_name;
-GtkWidget *label_room, *button_room[ROOM_NUM];
+GtkWidget *label_room = NULL, *button_room[ROOM_NUM];
 GtkWidget *label_wait, *btn_back, *msg_box = NULL, *scroll_window, *entry_msg, *friend_box, *label_client[ROOM_SIZE], *box_client;
 GtkWidget *label_start, *label_question, *button_option[4], *text_view_question, *label_ring;
 GtkWidget *end_game_result;

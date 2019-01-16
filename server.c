@@ -75,11 +75,14 @@ void send_msg_room(int connfd, int room_id, char *msg) {
 		}
 	}
 }
-void send_all_client(char *msg) {
+
+void send_all_client(int room_id, int connfd, char *msg) {
 	for (int i = 0; i < client_num; i++) {
-		send(client_arr[i].connfd, msg, strlen(msg), 0);
+		if (client_arr[i].connfd != connfd && client_arr[i].room_id != room_id)
+			send(client_arr[i].connfd, msg, strlen(msg), 0);
 	}
 }
+
 char * get_params(char command[]) {
 	int i = 0, j;
 	while (command[i] != ' ') {
@@ -94,6 +97,7 @@ char * get_params(char command[]) {
 	*(params + j) = '\0';
 	return params;
 }
+
 int check_answer(Answer * a) {
 	if (q_arr[a->q_num].answer == a->q_option + 1)
 		return 1;
@@ -152,37 +156,51 @@ void *echo(void *arg){
 			if (strstr(buff, "./join_room")) {
 				room_id =  atoi(get_params(buff));
 				int check = join_room(connfd, room_id);
-
 				printf("room : %d - check : %d\n", room_id, check);
 				
-				if (check == 1) {
-					sprintf(msg, "join_room_success: ");
-					int room_player = 0;
-					char temp[LENGTH_MSG];
-					sprintf(temp, "refresh_friend_room: ");
-					for (int i = 0; i < client_num; i++) {
-						if (client_arr[i].room_id == room_id) {
-							sprintf(msg+strlen(msg), "%s#", client_arr[i].name);
-							sprintf(temp+strlen(temp), "%s#", client_arr[i].name);
-							room_player++;
-						}	
-					}
-					send(connfd, msg, strlen(msg), 0);
-					send_msg_room(connfd, room_id, temp);
-					// Start game in room
-					if (room_player == ROOM_SIZE) {
-						room_arr[room_id-1].status = ROOM_RUNNING;
-					}
-				} else if (check == 0) {
-					sprintf(msg, "join_room_error: Room %d is full", room_id);
-					send(connfd, msg, strlen(msg), 0);
-				} else {
-					sprintf(msg, "join_room_error: Room %d had started", room_id);
-					send(connfd, msg, strlen(msg), 0);
-				}	
+				switch (check)
+				{
+					case -1:
+						sprintf(msg, "join_room_error: %s", ROOM_STARTED_NOTIFY);
+						send(connfd, msg, strlen(msg), 0);
+						break;
+					case 0:
+						sprintf(msg, "join_room_error: %s", ROOM_FULL_NOTIFY);
+						send(connfd, msg, strlen(msg), 0);
+						break;
+					case 1:
+						sprintf(msg, "join_room_success: ");
+						int room_player = 0;
+						char temp[LENGTH_MSG];
+						sprintf(temp, "refresh_friend_room: ");
+						for (int i = 0; i < client_num; i++) {
+							if (client_arr[i].room_id == room_id) {
+								sprintf(msg+strlen(msg), "%s#", client_arr[i].name);
+								sprintf(temp+strlen(temp), "%s#", client_arr[i].name);
+								room_player++;
+							}	
+						}
+						send(connfd, msg, strlen(msg), 0);
+						send_msg_room(connfd, room_id, temp);
+						// Start game in room
+						if (room_player == ROOM_SIZE) {
+							room_arr[room_id-1].status = ROOM_RUNNING;
+						}
+						char temp2[LENGTH_MSG];	
+						sprintf(temp2, "refresh_list_room: ");
+						for (int i = 0; i < ROOM_MAX; i++) {
+							sprintf(temp2 + strlen(temp2), "%d-%d#", room_arr[i].id, room_arr[i].client_num);	
+						}
+						puts(temp2);
+						send_all_client(room_id, connfd, temp2);
+						break;
+					default:
+						break;
+				}
 			}
 
 			if (strstr(buff, "./left_room")) {
+				puts(buff);
 				room_id =  atoi(get_params(buff));
 				left_room(connfd, room_id);
 				sprintf(msg, "choose_room_again: ");
@@ -194,6 +212,13 @@ void *echo(void *arg){
 				char temp[LENGTH_MSG];
 				sprintf(temp, "friend_left_room: %s had left room.", get_client(connfd).name);
 				send_msg_room(connfd, room_id, temp);
+		
+				char temp2[LENGTH_MSG];	
+				sprintf(temp2, "refresh_list_room: ");
+				for (int i = 0; i < ROOM_MAX; i++) {
+					sprintf(temp2 + strlen(temp2), "%d-%d#", room_arr[i].id, room_arr[i].client_num);	
+				}
+				send_all_client(room_id, connfd, temp2);
 			}
 
 			if (strstr(buff, "./new_message")) {
@@ -206,14 +231,15 @@ void *echo(void *arg){
 			if (strstr(buff, "./answer")) {
 				Answer * a = get_answer(buff);
 				int answer_result = check_answer(a);
-				char temp[LENGTH_MSG];
+				char temp[LENGTH_MSG], result[30];
 				sprintf(msg, (answer_result == 1) ? "answer_true" : "answer_false");
+				sprintf(result, (answer_result == 1) ? "đúng" : "sai");
 				
-				sprintf(temp, "%s You answer %d. It's %s.", msg,  (a->q_option+1), boolean[answer_result]);
+				sprintf(temp, "%s Bạn chọn %d. Đáp án %s.", msg,  (a->q_option+1), result);
 				send(connfd, temp, strlen(temp), 0);
 				
 				memset(temp, strlen(temp), 0);
-				sprintf(temp, "%s %s answer %d. It's %s.", msg, get_client(connfd).name, (a->q_option+1), boolean[answer_result]);	
+				sprintf(temp, "%s %s chọn %d. Đáp án %s.", msg, get_client(connfd).name, (a->q_option+1), result);	
 				send_msg_room(connfd, room_id, temp);
 			}
 

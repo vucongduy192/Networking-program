@@ -38,7 +38,6 @@ void show_question() {
                 LEFT_ROOM_MODAL);
     gtk_window_set_title(GTK_WINDOW(dialog), "Question");
     int result = gtk_dialog_run(GTK_DIALOG(dialog));
-    
     if (result == MODAL_YES) {
         send_back();
     }

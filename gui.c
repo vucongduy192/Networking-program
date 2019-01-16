@@ -11,6 +11,7 @@ void in_game_clear();
 void win_game_screen();
 void lose_game_screen();
 void enter_name_clear();
+void end_game_clear();
 /* ----- Send request function ----*/
 void send_name (GtkWidget *widget, gpointer *data);
 void send_room (GtkWidget *widget, gpointer *data);
@@ -53,10 +54,10 @@ void enter_name_clear () {
 void choose_zoom_screen(char *data) {
 	enter_name_clear();
 	in_game_clear();
-	enter_name_clear();
+	end_game_clear();
 
 	in_choose_room = TRUE;
-
+	in_waiting_friend = FALSE;
 	label_room = gtk_label_new(NULL);
 	gtk_label_set_markup(GTK_LABEL(label_room), "<b>Choose a room</b>");
 	gtk_table_attach_defaults(GTK_TABLE(table), label_room, 1, 3, 0, 1);
@@ -84,10 +85,12 @@ void choose_zoom_clear() {
 	for (int i = 0; i < ROOM_NUM; i++)
 		gtk_widget_hide(button_room[i]);
 	gtk_widget_hide(label_room);
+	label_room = NULL;
 }
 
 void wait_friend_screen(char *data) {
 	choose_zoom_clear();
+	in_waiting_friend = TRUE;
 	refresh_friend_room(data);
 	if (client_num <= ROOM_SIZE - 1) 
 		show_info("Please wait another player!");
@@ -134,7 +137,7 @@ void refresh_friend_room(data) {
 		} 
 	}
 	if(client_num == ROOM_SIZE) {
-		show_info("Room is full. Start now!");
+		show_info("Phòng chơi đã đầy. Bắt đầu ngay!");
 		play_game(); 
 	}
 }
@@ -216,6 +219,7 @@ void win_game_screen() {
 	gtk_label_set_markup(GTK_LABEL(end_game_result), "<b>Các bạn đã thua cuộc</b>");
 	gtk_table_attach_defaults(GTK_TABLE(table), end_game_result, 1, 3, 1, 2);
 }
+
 void lose_game_screen() {
 	in_game_clear();
 	gtk_widget_show(btn_back);
@@ -225,7 +229,7 @@ void lose_game_screen() {
 	gtk_widget_show(end_game_result);
 }
 
-void clear_end_game() {
+void end_game_clear() {
 	if (end_game_result != NULL) {
 		gtk_widget_hide(end_game_result);
 		end_game_result = NULL;
@@ -233,7 +237,7 @@ void clear_end_game() {
 }
 void game_quit(GtkWidget *widget, gpointer *data)
 {
-	if (room_id != NULL) {
+	if (room_id != NULL && in_waiting_friend == TRUE) {
 		send_back(); // left room
 	}
 	// Disconnect server

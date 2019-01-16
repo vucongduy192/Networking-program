@@ -31,7 +31,7 @@ void send_answer(GtkWidget *widget, gpointer *data) {
 		puts(answer_cmd);
 		send(client_sock, answer_cmd, strlen(answer_cmd),0);
 	} else {
-		append_message("You can't answer");
+		show_error(ELIMINATED);
 	}
 }
 
