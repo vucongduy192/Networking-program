@@ -7,7 +7,7 @@
 #define ROOM_SIZE 2
 #define ROOM_NUM 6
 #define SCREEN_HEIGHT 400
-#define SCREEN_WIDTH 800
+#define SCREEN_WIDTH 600
 #define NEW_CLIENT_SUCESS "new_client_success"
 #define NEW_CLIENT_ERROR "new_client_error"
 
@@ -41,14 +41,20 @@ int in_waiting_friend = FALSE;
 int q_cur;
 char client_name[LENGTH_MSG];
 int room_id;
-
+char answer_client[30][30];
 #define LEFT_ROOM_MODAL "Bạn chắc chắn muốn rời phòng chơi"
 #define ELIMINATED "Bạn đã bị loại"
 
 // GUI
+GdkPixbuf *image = NULL;
+GdkPixbufAnimation * anim = NULL;
+GtkWidget *widget = NULL;
+GdkPixmap *background = NULL;
+GtkStyle *style = NULL;
+
 GtkWidget *window, *box, *table;        
-GtkWidget *label_name, *entry_name;
+GtkWidget *label_name, *entry_name, *enter_name_layout, *enter_name_bg;
 GtkWidget *label_room = NULL, *button_room[ROOM_NUM];
 GtkWidget *label_wait, *btn_back, *msg_box = NULL, *scroll_window, *entry_msg, *friend_box, *label_client[ROOM_SIZE], *box_client;
 GtkWidget *label_start, *label_question, *button_option[4], *text_view_question, *label_ring;
-GtkWidget *end_game_result;
+GtkWidget *end_game_result, *step, *result_box;

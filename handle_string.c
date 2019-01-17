@@ -33,7 +33,15 @@ void convert_room_detail(char *data) {
 		i++; // string index
 	}
 }
-
+char * get_friend_name(char str[]) {
+	char *temp= malloc(30*sizeof(char));
+	int  i = 0, j = 0;
+	while(str[i] != ' ') {
+		temp[j++] = str[i++];
+	}
+	temp[j] = '\0';
+	return temp;
+}
 void convert_client_detail(char *data) {
 	int i = 0, j, k = 0;
 	char element[10];
@@ -54,10 +62,11 @@ char * string_multiline(char *str) {
 	char *temp = malloc(LENGTH_MSG*sizeof(char));
 	int  i = 0, j = 0;
 	while(i < strlen(str)) {
-		temp[j++] = str[i++];
-		if (i%50 == 0) {
+		if (str[i] == '#') {
 			temp[j++] = '\n';
+			i++;
 		}
+		else temp[j++] = str[i++];
 	}
 	temp[j] = '\0';
 	return g_locale_to_utf8(temp, -1, 0, 0, 0);

@@ -86,6 +86,10 @@ gboolean timer_exe(gpointer p, int test)
 			data = get_data(msg);
 			show_info(data);
 			append_message(data);
+
+			if (strstr(msg, "Bạn"))
+				strcpy(answer_client[q_cur], client_name);
+			else strcpy(answer_client[q_cur], get_friend_name(data));
 			
 			q_cur++;
 			if (q_cur == q_num)

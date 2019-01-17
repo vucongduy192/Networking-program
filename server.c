@@ -125,6 +125,7 @@ Answer * get_answer(char *command) {
 	q_ans[j-2] = '\0';
 	a->q_option = atoi(q_ans);
 	printf("%d - %d\n", a->q_num, a->q_option);
+	if (a->q_num > 9) a->q_num = a->q_num/10;
 	return a;
 }
 
